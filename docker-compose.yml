@@ -1,21 +1,33 @@
-# docker-compose.yml
-
-# This file is for production mode only.
+version: '3.9'
 
 services:
   web_ai:
     build: .
     image: cornatul/webai.ai
     container_name: web_ai_server
-    restart: always
+    restart: unless-stopped
+
+    # Expose port 6970 internally and map it to 6970 externally
     ports:
       - "6970:6970"
+
+    # Environment file and additional environment variables
     env_file:
       - .env
     environment:
       - PYTHONPATH=/app/src
       - ENVIRONMENT=${ENVIRONMENT:-production}
+      - PORT=6970
+      - HOST=0.0.0.0
+      - WORKERS=4
+      - LOG_LEVEL=info
+
+    # Important: make sure Poetry environment is used
     command: >
       sh -c "
-        uvicorn app.main:app --host 0.0.0.0 --port 6970 --workers 4 --log-level info;
+        poetry install --no-root --no-interaction --no-ansi &&
+        poetry run uvicorn app.main:app --host 0.0.0.0 --port 6970 --workers 4 --log-level info
       "
+
+    # Optional: if using limited RAM for big models
+    shm_size: 2gb
